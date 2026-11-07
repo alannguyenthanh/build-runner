@@ -1,0 +1,72 @@
+name: build
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        required: true
+      he:
+        default: 'linux windows mac'
+
+permissions:
+  contents: read
+
+jobs:
+  chon:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.chon.outputs.matrix }}
+    steps:
+      - id: chon
+        shell: bash
+        env:
+          HE: ${{ inputs.he }}
+        run: |
+          ds=()
+          for h in $(echo "$HE" | tr 'A-Z,' 'a-z '); do
+            case "$h" in
+              linux) ds+=('"ubuntu-latest"') ;;
+              windows) ds+=('"windows-latest"') ;;
+              mac) ds+=('"macos-latest"') ;;
+            esac
+          done
+          [ ${#ds[@]} -eq 0 ] && ds=('"ubuntu-latest"')
+          echo "matrix={\"os\":[$(IFS=,; echo "${ds[*]}")]}" >> "$GITHUB_OUTPUT"
+
+  kiem-tra:
+    needs: chon
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.SOURCE_REPO }}
+          ref: ${{ inputs.tag }}
+          token: ${{ secrets.HARNESS_SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bash ci/kiem-tra.sh
+
+  dong-goi:
+    needs: [chon, kiem-tra]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.chon.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.SOURCE_REPO }}
+          ref: ${{ inputs.tag }}
+          token: ${{ secrets.HARNESS_SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+          REPO_NGUON: ${{ secrets.SOURCE_REPO }}
+          GH_TOKEN: ${{ secrets.HARNESS_SOURCE_TOKEN }}
+        run: bash ci/dong-goi.sh
