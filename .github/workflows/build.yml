@@ -69,4 +69,6 @@ jobs:
           TAG: ${{ inputs.tag }}
           REPO_NGUON: ${{ secrets.SOURCE_REPO }}
           GH_TOKEN: ${{ secrets.HARNESS_SOURCE_TOKEN }}
+          HARNESS_MAC_KY_P12: ${{ secrets.HARNESS_MAC_KY_P12 }}
+          HARNESS_MAC_KY_MK: ${{ secrets.HARNESS_MAC_KY_MK }}
         run: bash ci/dong-goi.sh
